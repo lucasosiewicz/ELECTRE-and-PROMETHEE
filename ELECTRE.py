@@ -9,6 +9,7 @@ class ELECTRE:
         self.D = None
         self.C = None
         self.sigma = None
+        self.ranking_descending = {}
 
     
     def load_data(self, filename):
@@ -99,13 +100,85 @@ class ELECTRE:
         struct = np.zeros_like(self.C)
         for i in range(self.data.shape[0]):
             for j in range(self.data.shape[0]):
-                f = np.where(self.d[i, j, :] > self.C[i, j])
+                f = np.where(self.D[i, j, :] > self.C[i, j])
                 if len(f[0]) == 0:
                     struct[i, j] = self.C[i, j]
                 else:
-                    if np.any(self.d[i, j, f] == 1):
+                    if np.any(self.D[i, j, f] == 1):
                         struct[i, j] = 0
                     else:
-                        struct[i, j] = self.C[i, j] * np.prod((1 - self.d[i, j, f]) / (1 - self.C[i, j]))
+                        struct[i, j] = self.C[i, j] * np.prod((1 - self.D[i, j, f]) / (1 - self.C[i, j]))
 
         self.sigma = struct
+
+    
+    def destilation_descending(self):
+
+        s = lambda x: -0.15 * x + 0.3
+
+        indices = np.arange(0, self.sigma.shape[0])
+        np.fill_diagonal(self.sigma, 0)
+        
+        place = 1
+
+
+        while self.sigma.size != 0:
+            # 1, 2
+            lambda_upper = np.max(self.sigma)
+
+            # 4
+            if lambda_upper == 0:
+                break
+
+            # 3
+            lambda_lower = np.max(self.sigma[
+                np.where(self.sigma < lambda_upper - s(lambda_upper))
+            ])
+
+            # 5
+            checklist = np.where((self.sigma > lambda_lower) & (self.sigma > self.sigma.T + s(self.sigma)), self.sigma, 0)
+
+            # 6
+            strength = np.count_nonzero(checklist, axis=1)
+            weakness = np.count_nonzero(checklist, axis=0)
+            quality = strength - weakness
+
+            best_alternatives = np.where(quality == np.max(quality))[0]
+            idxs = indices[best_alternatives]
+        
+            # 8, 9
+            while best_alternatives.size != 1:
+                if np.all(checklist == 0):
+                    break
+
+                initial_destilation = self.sigma[best_alternatives]
+                initial_destilation = initial_destilation[:, best_alternatives]
+
+                lambda_upper = lambda_lower
+                lambda_lower = np.max(initial_destilation[
+                    np.where(initial_destilation < lambda_upper - s(lambda_upper))
+                ])
+
+                checklist = np.where((initial_destilation > lambda_lower) & (initial_destilation > initial_destilation.T + s(initial_destilation)), initial_destilation, 0)
+
+                strength = np.count_nonzero(initial_destilation, axis=0)
+                weakness = np.count_nonzero(initial_destilation, axis=1)
+                quality = strength - weakness
+
+                best_alternatives = np.where(quality == np.max(quality))[0]
+                idxs = idxs[best_alternatives]
+
+            # 7
+            self.ranking_descending[place] = idxs
+
+            for i in idxs:
+                indices = indices[indices != i]
+
+            if indices.size != 0:
+                for i in range(2):
+                    self.sigma = np.delete(self.sigma, self.ranking_descending[place], axis=i)
+            else:
+                self.sigma = np.array([])
+            place += 1
+
+            print(self.ranking_descending)
