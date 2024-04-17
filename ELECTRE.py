@@ -188,12 +188,11 @@ class ELECTRE:
             # usuwam warianty z macierzy sigma
             for i in idxs:
                 indices = indices[indices != i]
+            print(f'Indices: {indices}')
 
-            if indices.size != 0:
-                for idx in idxs:
-                    row_to_delete = np.where(self.sigma[:,-1] == idx)[0]
-                    for i in range(2):
-                        self.sigma = np.delete(self.sigma, row_to_delete, axis=i)
-            else:
-                self.sigma = np.array([])
+            for idx in idxs:
+                row_to_delete = np.where(self.sigma[:,-1] == idx)[0]
+                for i in range(2):
+                    self.sigma = np.delete(self.sigma, row_to_delete, axis=i)
+
             place += 1
