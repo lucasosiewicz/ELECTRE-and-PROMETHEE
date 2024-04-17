@@ -131,11 +131,11 @@ class ELECTRE:
         while self.sigma.size != 0:
             # poszukiwanie górnego progu wiarygodności
             lambda_upper = np.max(self.sigma[:,:-1])
-            print(f'max: {lambda_upper}')
 
             # jeżeli jest równy 0 to kończę wykonywanie algorytmu
-            #if lambda_upper == 0:
-            #    break
+            if lambda_upper == 0:
+                self.ranking_descending[place] = self.sigma[:,-1]
+                break
 
             # poszukiwanie dolnego progu wiarygodności
             lambda_lower = np.max(self.sigma[:,:-1][
@@ -182,13 +182,12 @@ class ELECTRE:
 
             # przypisuję wariantom miejsce w rankingu
             self.ranking_descending[place] = idxs
-            print(f'Place {place}: {self.ranking_descending[place]}')
-            print(f'Sigma: {self.sigma}')
+            
             
             # usuwam warianty z macierzy sigma
             for i in idxs:
                 indices = indices[indices != i]
-            print(f'Indices: {indices}')
+            
 
             for idx in idxs:
                 row_to_delete = np.where(self.sigma[:,-1] == idx)[0]
@@ -196,3 +195,6 @@ class ELECTRE:
                     self.sigma = np.delete(self.sigma, row_to_delete, axis=i)
 
             place += 1
+
+
+            
