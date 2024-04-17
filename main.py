@@ -13,7 +13,15 @@ def main(filename):
     electre.count_marginal_discordace(P, V)
     electre.count_total_concordance(WEIGHTS)
     electre.count_outranking_credibility()
-    electre.destilation_descending()
+    electre.destilation(descending=True)
+    electre.destilation(descending=False)
+    electre.reverse_ranking()
+    print('Descending')
+    for k, v in electre.ranking_descending.items():
+        print(f'Place {k}: {v}')
+    print('Ascending')
+    for k, v in electre.ranking_ascending.items():
+        print(f'Place {k}: {v}')
 
 
 
