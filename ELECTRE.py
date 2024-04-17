@@ -113,54 +113,66 @@ class ELECTRE:
 
     
     def destilation_descending(self):
-
+        
+        # Definicja funkcji S
         s = lambda x: -0.15 * x + 0.3
 
-        indices = np.arange(0, self.sigma.shape[0])
+        # dla ułatwienia implementacji signorowania wartości po przekątnych wypełniam ich wartości zerami
         np.fill_diagonal(self.sigma, 0)
+
+        # do macierzy sigma dołączam indeksy wierszy
+        indices = np.arange(0, self.sigma.shape[0], dtype=int)
+        self.sigma = np.c_[self.sigma, indices]
         
+        # numer iteracji, reprezentuje również miejsce w rankingu
         place = 1
 
 
         while self.sigma.size != 0:
-            # 1, 2
-            lambda_upper = np.max(self.sigma)
+            # poszukiwanie górnego progu wiarygodności
+            lambda_upper = np.max(self.sigma[:,:-1])
+            print(f'max: {lambda_upper}')
 
-            # 4
-            if lambda_upper == 0:
-                break
+            # jeżeli jest równy 0 to kończę wykonywanie algorytmu
+            #if lambda_upper == 0:
+            #    break
 
-            # 3
-            lambda_lower = np.max(self.sigma[
-                np.where(self.sigma < lambda_upper - s(lambda_upper))
+            # poszukiwanie dolnego progu wiarygodności
+            lambda_lower = np.max(self.sigma[:,:-1][
+                np.where(self.sigma[:,:-1] < lambda_upper - s(lambda_upper))
             ])
 
-            # 5
-            checklist = np.where((self.sigma > lambda_lower) & (self.sigma > self.sigma.T + s(self.sigma)), self.sigma, 0)
+            # zapisywanie wartości sigma dla par gdzie A jest preferowane nad B
+            checklist = np.where((self.sigma[:,:-1] > lambda_lower) & (self.sigma[:,:-1] > self.sigma[:,:-1].T + s(self.sigma[:,:-1])), self.sigma[:,:-1], 0)
 
-            # 6
+            # obliczam siłę i słabość wariantów oraz ich użyteczność
             strength = np.count_nonzero(checklist, axis=1)
             weakness = np.count_nonzero(checklist, axis=0)
             quality = strength - weakness
 
+            # zapisuję indeksy najlepszych wariantów
             best_alternatives = np.where(quality == np.max(quality))[0]
-            idxs = indices[best_alternatives]
+            idxs = np.array(self.sigma[best_alternatives, -1])
         
-            # 8, 9
-            while best_alternatives.size != 1:
-                if np.all(checklist == 0):
-                    break
-
-                initial_destilation = self.sigma[best_alternatives]
+            # jeżeli dojdzie do remisu to przechodzę do destylacji wewnętrznej
+            while idxs.size != 1:
+                initial_destilation = self.sigma[best_alternatives,:-1]
                 initial_destilation = initial_destilation[:, best_alternatives]
 
                 lambda_upper = lambda_lower
-                lambda_lower = np.max(initial_destilation[
-                    np.where(initial_destilation < lambda_upper - s(lambda_upper))
-                ])
+
+                if lambda_upper == 0:
+                    break
+                
+                try:
+                    lambda_lower = np.max(initial_destilation[
+                        np.where(initial_destilation < lambda_upper - s(lambda_upper))
+                    ])
+                except ValueError:
+                    lambda_lower = 0
 
                 checklist = np.where((initial_destilation > lambda_lower) & (initial_destilation > initial_destilation.T + s(initial_destilation)), initial_destilation, 0)
-
+                #print(checklist)
                 strength = np.count_nonzero(initial_destilation, axis=0)
                 weakness = np.count_nonzero(initial_destilation, axis=1)
                 quality = strength - weakness
@@ -168,17 +180,20 @@ class ELECTRE:
                 best_alternatives = np.where(quality == np.max(quality))[0]
                 idxs = idxs[best_alternatives]
 
-            # 7
+            # przypisuję wariantom miejsce w rankingu
             self.ranking_descending[place] = idxs
-
+            print(f'Place {place}: {self.ranking_descending[place]}')
+            print(f'Sigma: {self.sigma}')
+            
+            # usuwam warianty z macierzy sigma
             for i in idxs:
                 indices = indices[indices != i]
 
             if indices.size != 0:
-                for i in range(2):
-                    self.sigma = np.delete(self.sigma, self.ranking_descending[place], axis=i)
+                for idx in idxs:
+                    row_to_delete = np.where(self.sigma[:,-1] == idx)[0]
+                    for i in range(2):
+                        self.sigma = np.delete(self.sigma, row_to_delete, axis=i)
             else:
                 self.sigma = np.array([])
             place += 1
-
-            print(self.ranking_descending)
