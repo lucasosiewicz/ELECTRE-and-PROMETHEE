@@ -11,6 +11,7 @@ class ELECTRE:
         self.sigma = None
         self.ranking_descending = {}
         self.ranking_ascending = {}
+        self.median_ranking = {}
 
     
     def load_data(self, filename):
@@ -210,9 +211,29 @@ class ELECTRE:
 
 
     def reverse_ranking(self):
-        keys = list(self.ranking_ascending.keys())
-        values = list(self.ranking_ascending.values())
+        keys = list(self.ranking_descending.keys())
+        values = list(self.ranking_descending.values())
         for k, v in zip(keys[::-1], values):
-            self.ranking_ascending[k] = v
+            self.ranking_descending[k] = v
 
+
+    def create_median_ranking(self):
+        path_length = {}
+        for alt in np.arange(0, self.data.shape[0]):
+            for k in self.ranking_descending.keys():
+                if alt in self.ranking_descending[k]:
+                    desc_path = k
+                    break
+            for k in self.ranking_ascending.keys():
+                if alt in self.ranking_ascending[k]:
+                    asc_path = k
+                    break
+            if desc_path + asc_path not in path_length.keys():
+                path_length[desc_path + asc_path] = [alt]
+            else:
+                path_length[desc_path + asc_path].append(alt)            
+        
+        path_length = dict(sorted(path_length.items()))
+
+        self.median_ranking = {k+1: v for k, v in zip(range(len(path_length)), path_length.values())}             
 

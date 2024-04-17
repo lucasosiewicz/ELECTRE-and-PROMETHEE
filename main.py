@@ -16,12 +16,9 @@ def main(filename):
     electre.destilation(descending=True)
     electre.destilation(descending=False)
     electre.reverse_ranking()
-    print('Descending')
-    for k, v in electre.ranking_descending.items():
-        print(f'Place {k}: {v}')
-    print('Ascending')
-    for k, v in electre.ranking_ascending.items():
-        print(f'Place {k}: {v}')
+    electre.create_median_ranking()
+    print(electre.median_ranking)
+
 
 
 
